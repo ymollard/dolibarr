@@ -2182,15 +2182,9 @@ class EmailCollector extends CommonObject
 									if ($thirdpartystatic->id > 0) {
 										$tickettocreate->socid = $thirdpartystatic->id;
 										$tickettocreate->fk_soc = $thirdpartystatic->id;
-										if ($thirdpartyfoundby) {
-											$descriptionmeta = dol_concatdesc($descriptionmeta, 'Third party found from '.$thirdpartyfoundby);
-										}
 									}
 									if ($contactstatic->id > 0) {
 										$tickettocreate->contact_id = $contactstatic->id;
-										if ($contactfoundby) {
-											$descriptionmeta = dol_concatdesc($descriptionmeta, 'Contact/address found from '.$contactfoundby);
-										}
 									}
 
 									$description = $descriptiontitle;
