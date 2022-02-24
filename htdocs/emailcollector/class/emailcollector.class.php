@@ -1484,7 +1484,7 @@ class EmailCollector extends CommonObject
 								$objectemail = new User($this->db);
 							}
 							if ($reg[1] == 'tic') {
-								$objectemail = new Ticket($this->db);
+								$objectemail = new Ticket($this->db); // Can be a Ticket (original ticket) OR an ActionComm (reply to a ticket)
 							}
 							if ($reg[1] == 'recruitmentcandidature') {
 								$objectemail = new RecruitmentCandidature($this->db);
@@ -2165,115 +2165,175 @@ class EmailCollector extends CommonObject
 							}
 						}
 					} elseif ($operation['type'] == 'ticket') {
-						// Create ticket
+						// Create Ticket or Ticket Message (ActionComm)
 						$tickettocreate = new Ticket($this->db);
+						$alreadycreatedasticket = $tickettocreate->fetch(0, '', '', $msgid);
 
-						$alreadycreated = $tickettocreate->fetch(0, '', '', $msgid);
-						if ($alreadycreated == 0) {
-							if ($thirdpartystatic->id > 0) {
-								$tickettocreate->socid = $thirdpartystatic->id;
-								$tickettocreate->fk_soc = $thirdpartystatic->id;
-								if ($thirdpartyfoundby) {
-									$descriptionmeta = dol_concatdesc($descriptionmeta, 'Third party found from '.$thirdpartyfoundby);
-								}
-							}
-							if ($contactstatic->id > 0) {
-								$tickettocreate->contact_id = $contactstatic->id;
-								if ($contactfoundby) {
-									$descriptionmeta = dol_concatdesc($descriptionmeta, 'Contact/address found from '.$contactfoundby);
-								}
-							}
+						if ($alreadycreatedasticket == 0) {
+							// No Ticket found for the collected e-mail, let's see if it exists as a Ticket Message (ActionComm) instead...
+							$actioncomm = new ActionComm($this->db);
+							$alreadycreatedasmessage = $actioncomm->fetch(0, '', '', $msgid);
 
-							$description = $descriptiontitle;
-							$description = dol_concatdesc($description, "-----");
-							$description = dol_concatdesc($description, $descriptionmeta);
-							$description = dol_concatdesc($description, "-----");
-							$description = dol_concatdesc($description, $messagetext);
+							if ($alreadycreatedasmessage == 0) {
+								// No Ticket Message found for this collected e-mail
 
-							$descriptionfull = $description;
-							if (empty($conf->global->MAIN_EMAILCOLLECTOR_MAIL_WITHOUT_HEADER)) {
-								$descriptionfull = dol_concatdesc($descriptionfull, "----- Header");
-								$descriptionfull = dol_concatdesc($descriptionfull, $header);
-							}
-
-							$tickettocreate->subject = $subject;
-							$tickettocreate->message = $description;
-							$tickettocreate->type_code = (!empty($conf->global->MAIN_EMAILCOLLECTOR_TICKET_TYPE_CODE) ? $conf->global->MAIN_EMAILCOLLECTOR_TICKET_TYPE_CODE : dol_getIdFromCode($this->db, 1, 'c_ticket_type', 'use_default', 'code', 1));
-							$tickettocreate->category_code = (!empty($conf->global->MAIN_EMAILCOLLECTOR_TICKET_CATEGORY_CODE) ? $conf->global->MAIN_EMAILCOLLECTOR_TICKET_CATEGORY_CODE : dol_getIdFromCode($this->db, 1, 'c_ticket_category', 'use_default', 'code', 1));
-							$tickettocreate->severity_code = (!empty($conf->global->MAIN_EMAILCOLLECTOR_TICKET_SEVERITY_CODE) ? $conf->global->MAIN_EMAILCOLLECTOR_TICKET_SEVERITY_CODE : dol_getIdFromCode($this->db, 1, 'c_ticket_severity', 'use_default', 'code', 1));
-							$tickettocreate->origin_email = $from;
-							$tickettocreate->fk_user_create = $user->id;
-							$tickettocreate->datec = $date;
-							$tickettocreate->fk_project = $projectstatic->id;
-							$tickettocreate->notify_tiers_at_create = 0;
-							$tickettocreate->note_private = $descriptionfull;
-							$tickettocreate->entity = $conf->entity;
-							$tickettocreate->email_msgid = $msgid;
-							//$tickettocreate->fk_contact = $contactstatic->id;
-
-							$savesocid = $tickettocreate->socid;
-
-							// Overwrite values with values extracted from source email.
-							// This may overwrite any $projecttocreate->xxx properties.
-							$errorforthisaction = $this->overwritePropertiesOfObject($tickettocreate, $operation['actionparam'], $messagetext, $subject, $header);
-
-							// Set ticket ref if not yet defined
-							if (empty($tickettocreate->ref)) {
-								// Get next Ref
-								$defaultref = '';
-								$modele = empty($conf->global->TICKET_ADDON) ? 'mod_ticket_simple' : $conf->global->TICKET_ADDON;
-
-								// Search template files
-								$file = ''; $classname = ''; $filefound = 0; $reldir = '';
-								$dirmodels = array_merge(array('/'), (array) $conf->modules_parts['models']);
-								foreach ($dirmodels as $reldir) {
-									$file = dol_buildpath($reldir."core/modules/ticket/".$modele.'.php', 0);
-									if (file_exists($file)) {
-										$filefound = 1;
-										$classname = $modele;
-										break;
-									}
-								}
-
-								if ($filefound) {
-									if ($savesocid > 0) {
-										if ($savesocid != $tickettocreate->socid) {
-											$errorforactions++;
-											setEventMessages('You loaded a thirdparty (id='.$savesocid.') and you force another thirdparty id (id='.$tickettocreate->socid.') by setting socid in operation with a different value', null, 'errors');
+								if(empty($fk_element_type)) {
+									dol_syslog("No ticket found for trackid=".$trackid." msgid=".$msgid.". Creating a new ticket.");
+									if ($thirdpartystatic->id > 0) {
+										$tickettocreate->socid = $thirdpartystatic->id;
+										$tickettocreate->fk_soc = $thirdpartystatic->id;
+										if ($thirdpartyfoundby) {
+											$descriptionmeta = dol_concatdesc($descriptionmeta, 'Third party found from '.$thirdpartyfoundby);
 										}
-									} else {
-										if ($tickettocreate->socid > 0) {
-											$thirdpartystatic->fetch($tickettocreate->socid);
+									}
+									if ($contactstatic->id > 0) {
+										$tickettocreate->contact_id = $contactstatic->id;
+										if ($contactfoundby) {
+											$descriptionmeta = dol_concatdesc($descriptionmeta, 'Contact/address found from '.$contactfoundby);
 										}
 									}
 
-									$result = dol_include_once($reldir."core/modules/ticket/".$modele.'.php');
-									$modModuleToUseForNextValue = new $classname;
-									$defaultref = $modModuleToUseForNextValue->getNextValue(($thirdpartystatic->id > 0 ? $thirdpartystatic : null), $tickettocreate);
-								}
-								$tickettocreate->ref = $defaultref;
-							}
+									$description = $descriptiontitle;
+									$description = dol_concatdesc($description, "-----");
+									$description = dol_concatdesc($description, $descriptionmeta);
+									$description = dol_concatdesc($description, "-----");
+									$description = dol_concatdesc($description, $messagetext);
 
-							if ($errorforthisaction) {
-								$errorforactions++;
-							} else {
-								if (is_numeric($tickettocreate->ref) && $tickettocreate->ref <= 0) {
-									$errorforactions++;
-									$this->error = 'Failed to create ticket: Can\'t get a valid value for the field ref with numbering template = '.$modele.', thirdparty id = '.$thirdpartystatic->id;
-								} else {
-									// Create project
-									$result = $tickettocreate->create($user);
-									if ($result <= 0) {
-										$errorforactions++;
-										$this->error = 'Failed to create ticket: '.$langs->trans($tickettocreate->error);
-										$this->errors = $tickettocreate->errors;
-									} else {
-										if ($attachments) {
-											$destdir = $conf->ticket->dir_output.'/'.$tickettocreate->ref;
-											if (!dol_is_dir($destdir)) {
-												dol_mkdir($destdir);
-												$this->getmsg($connection, $imapemail, $destdir);
+									$descriptionfull = $description;
+									if (empty($conf->global->MAIN_EMAILCOLLECTOR_MAIL_WITHOUT_HEADER)) {
+										$descriptionfull = dol_concatdesc($descriptionfull, "----- Header");
+										$descriptionfull = dol_concatdesc($descriptionfull, $header);
+									}
+
+									$tickettocreate->subject = $subject;
+									$tickettocreate->message = $description;
+									$tickettocreate->type_code = (!empty($conf->global->MAIN_EMAILCOLLECTOR_TICKET_TYPE_CODE) ? $conf->global->MAIN_EMAILCOLLECTOR_TICKET_TYPE_CODE : dol_getIdFromCode($this->db, 1, 'c_ticket_type', 'use_default', 'code', 1));
+									$tickettocreate->category_code = (!empty($conf->global->MAIN_EMAILCOLLECTOR_TICKET_CATEGORY_CODE) ? $conf->global->MAIN_EMAILCOLLECTOR_TICKET_CATEGORY_CODE : dol_getIdFromCode($this->db, 1, 'c_ticket_category', 'use_default', 'code', 1));
+									$tickettocreate->severity_code = (!empty($conf->global->MAIN_EMAILCOLLECTOR_TICKET_SEVERITY_CODE) ? $conf->global->MAIN_EMAILCOLLECTOR_TICKET_SEVERITY_CODE : dol_getIdFromCode($this->db, 1, 'c_ticket_severity', 'use_default', 'code', 1));
+									$tickettocreate->origin_email = $from;
+									$tickettocreate->fk_user_create = $user->id;
+									$tickettocreate->datec = $date;
+									$tickettocreate->fk_project = $projectstatic->id;
+									$tickettocreate->notify_tiers_at_create = 0;
+									$tickettocreate->note_private = $descriptionfull;
+									$tickettocreate->entity = $conf->entity;
+									$tickettocreate->email_msgid = $msgid;
+									//$tickettocreate->fk_contact = $contactstatic->id;
+
+									$savesocid = $tickettocreate->socid;
+
+									// Overwrite values with values extracted from source email.
+									$errorforthisaction = $this->overwritePropertiesOfObject($tickettocreate, $operation['actionparam'], $messagetext, $subject, $header);
+
+									// Set ticket ref if not yet defined
+									if (empty($tickettocreate->ref)) {
+										// Get next Ref
+										$defaultref = '';
+										$modele = empty($conf->global->TICKET_ADDON) ? 'mod_ticket_simple' : $conf->global->TICKET_ADDON;
+
+										// Search template files
+										$file = ''; $classname = ''; $filefound = 0; $reldir = '';
+										$dirmodels = array_merge(array('/'), (array) $conf->modules_parts['models']);
+										foreach ($dirmodels as $reldir) {
+											$file = dol_buildpath($reldir."core/modules/ticket/".$modele.'.php', 0);
+											if (file_exists($file)) {
+												$filefound = 1;
+												$classname = $modele;
+												break;
 											}
+										}
+
+										if ($filefound) {
+											if ($savesocid > 0) {
+												if ($savesocid != $tickettocreate->socid) {
+													$errorforactions++;
+													setEventMessages('You loaded a thirdparty (id='.$savesocid.') and you force another thirdparty id (id='.$tickettocreate->socid.') by setting socid in operation with a different value', null, 'errors');
+												}
+											} else {
+												if ($tickettocreate->socid > 0) {
+													$thirdpartystatic->fetch($tickettocreate->socid);
+												}
+											}
+
+											$result = dol_include_once($reldir."core/modules/ticket/".$modele.'.php');
+											$modModuleToUseForNextValue = new $classname;
+											$defaultref = $modModuleToUseForNextValue->getNextValue(($thirdpartystatic->id > 0 ? $thirdpartystatic : null), $tickettocreate);
+										}
+										$tickettocreate->ref = $defaultref;
+									}
+
+									if ($errorforthisaction) {
+										$errorforactions++;
+									} else {
+										if (is_numeric($tickettocreate->ref) && $tickettocreate->ref <= 0) {
+											$errorforactions++;
+											$this->error = 'Failed to create ticket: Can\'t get a valid value for the field ref with numbering template = '.$modele.', thirdparty id = '.$thirdpartystatic->id;
+										} else {
+											// Create project
+											$result = $tickettocreate->create($user);
+											if ($result <= 0) {
+												$errorforactions++;
+												$this->error = 'Failed to create ticket: '.$langs->trans($tickettocreate->error);
+												$this->errors = $tickettocreate->errors;
+											}
+											else {
+												if ($attachments) {
+													$destdir = $conf->ticket->dir_output.'/'.$tickettocreate->ref;
+													if (!dol_is_dir($destdir)) {
+														dol_mkdir($destdir);
+														$this->getmsg($connection, $imapemail, $destdir);
+													}
+												}
+											}
+										}
+									}
+								}
+								else {
+									dol_syslog("Ticket found for trackid=".$trackid." msgid=".$msgid.". Creating a new message for this ticket.");
+									$description = $descriptiontitle;
+									$description = dol_concatdesc($description, $descriptionmeta);
+									$description = dol_concatdesc($description, "-----");
+									$description = dol_concatdesc($description, $messagetext);
+
+									// Insert record of the received email
+									$actioncomm->type_code   = 'AC_OTH_AUTO';  // TODO: Should be AC_EMAIL_IN but seems not allowed here 
+									$actioncomm->code        = 'TICKET_MSG';
+									$actioncomm->label       = $langs->trans("ActionAC_".$actioncode).' - '.$langs->trans("MailFrom").' '.$from;
+									$actioncomm->note_private = $description;
+									$actioncomm->fk_project  = $projectstatic->id;
+									$actioncomm->datep       = $date;
+									$actioncomm->datef       = $date;
+									$actioncomm->percentage  = -1; // Not applicable
+									$actioncomm->socid       = $thirdpartystatic->id;
+									$actioncomm->contact_id = $contactstatic->id;
+									$actioncomm->socpeopleassigned = (!empty($contactstatic->id) ? array($contactstatic->id => '') : array());
+									$actioncomm->authorid    = $user->id; // User saving action
+									$actioncomm->userownerid = $user->id; // Owner of action
+									$actioncomm->email_msgid = $msgid;
+									$actioncomm->email_from  = $fromstring;
+									$actioncomm->email_sender = $sender;
+									$actioncomm->email_to    = $to;
+									$actioncomm->email_tocc  = $sendtocc;
+									$actioncomm->email_tobcc = $sendtobcc;
+									$actioncomm->email_subject = $subject;
+									$actioncomm->errors_to   = '';
+
+									$actioncomm->fk_element  = $fk_element_id;   // Link to original ticket
+									$actioncomm->elementid = $fk_element_id;
+									$actioncomm->elementtype = $fk_element_type;
+									//$actioncomm->extraparams = $extraparams;
+
+									// Overwrite values with values extracted from source email
+									$errorforthisaction = $this->overwritePropertiesOfObject($actioncomm, $operation['actionparam'], $messagetext, $subject, $header);
+
+									if ($errorforthisaction) {
+										$errorforactions++;
+									} else {
+										$result = $actioncomm->create($user);
+										if ($result <= 0) {
+											$errorforactions++;
+											$this->error = 'Failed to add message to ticket: '.$langs->trans($actioncomm->error);
+											$this->errors = $actioncomm->errors;
 										}
 									}
 								}
