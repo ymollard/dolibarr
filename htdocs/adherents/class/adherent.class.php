@@ -724,6 +724,12 @@ class Adherent extends CommonObject
 			$sql .= ", datevalid = '".$this->db->idate($this->datevalid)."'"; // Must be modified only when validating a member
 		}
 		$sql .= ", fk_user_mod = ".($user->id > 0 ? $user->id : 'null'); // Can be null because member can be create by a guest
+		
+		if(!empty($this->urltoken) && !empty($this->urltokenexpiringdate)) {
+			$sql .= ", urltoken = '".$this->urltoken."'";
+			$sql .= ", urltokenexpiringdate = '".$this->db->idate($this->urltokenexpiringdate)."'";
+		}
+
 		$sql .= " WHERE rowid = ".((int) $this->id);
 
 		// If we change the type of membership, we set also label of new type
@@ -1350,6 +1356,7 @@ class Adherent extends CommonObject
 		$sql .= " d.country,";
 		$sql .= " d.state_id,";
 		$sql .= " d.model_pdf,";
+		$sql .= " d.urltoken, d.urltokenexpiringdate,";
 		$sql .= " c.rowid as country_id, c.code as country_code, c.label as country,";
 		$sql .= " dep.nom as state, dep.code_departement as state_code,";
 		$sql .= " t.libelle as type, t.subscription as subscription, t.amount,";
@@ -1448,6 +1455,10 @@ class Adherent extends CommonObject
 				$this->user_login = $obj->user_login;
 
 				$this->model_pdf = $obj->model_pdf;
+
+				$tokenpresent = !empty($obj->urltoken) && !empty($obj->urltokenexpiringdate);
+				$this->urltoken = $tokenpresent? $obj->urltoken : null;
+				$this->urltokenexpiringdate = $tokenpresent? $this->db->jdate($obj->urltokenexpiringdate) : null;
 
 				// Retrieve all extrafield
 				// fetch optionals attributes and labels
@@ -2948,6 +2959,25 @@ class Adherent extends CommonObject
 		return $this->datefin < ($now - $conf->adherent->subscription->warning_delay);
 	}
 
+	/**
+	 * Get the tokenized URL to renew membership and/or update the member personal information
+	 *
+	 * @param	User	$user        	User object requesting the URL
+	 * @param	bool	$generate		Must generate and save into database a new token valid for 72h
+	 * @return	str						null if the link is expired and must be generated again, or the renewal URL otherwise
+	 */
+	public function getRenewalLink($user, $generate = false) {
+		if($generate) {
+			$token = dol_hash(uniqid(mt_rand(), false), 'md5');
+			$this->urltoken = $token;
+			$this->urltokenexpiringdate = dol_time_plus_duree(dol_now(), 72, 'h');
+			$this->update($user);
+		}
+		if(!empty($this->urltoken) && !empty($this->urltokenexpiringdate) && $this->urltokenexpiringdate > dol_now()) {
+			return DOL_MAIN_URL_ROOT."/public/members/new.php?ref=".$this->id."&urltoken=".$this->urltoken;
+		}
+		return null;
+	}
 
 	/**
 	 * Send reminders by emails before subscription end

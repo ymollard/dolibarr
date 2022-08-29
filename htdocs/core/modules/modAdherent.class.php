@@ -123,6 +123,20 @@ class modAdherent extends DolibarrModules
 		$this->const[$r][4] = 0;
 		$r++;
 
+		$this->const[$r][0] = "ADHERENT_EMAIL_TEMPLATE_SEARCHED_AND_FOUND";
+		$this->const[$r][1] = "emailtemplate:member";
+		$this->const[$r][2] = "(SendingAnEMailToMemberEMailSearchFound)";
+		$this->const[$r][3] = "";
+		$this->const[$r][4] = 0;
+		$r++;
+
+		$this->const[$r][0] = "ADHERENT_EMAIL_TEMPLATE_SEARCHED_AND_NOT_FOUND";
+		$this->const[$r][1] = "emailtemplate:member";
+		$this->const[$r][2] = "(SendingAnEMailToMemberEMailSearchNotFound)";
+		$this->const[$r][3] = "";
+		$this->const[$r][4] = 0;
+		$r++;
+
 		// For cards
 		$this->const[$r][0] = "ADHERENT_CARD_HEADER_TEXT";
 		$this->const[$r][1] = "chaine";

@@ -112,6 +112,7 @@ ErrorSelectAtLeastOne=Error, select at least one entry.
 ErrorDeleteNotPossibleLineIsConsolidated=Delete not possible because record is linked to a bank transaction that is conciliated
 ErrorProdIdAlreadyExist=%s is assigned to another third
 ErrorFailedToSendPassword=Failed to send password
+ErrorFailedToSendEmail=Failed to send e-mail
 ErrorFailedToLoadRSSFile=Fails to get RSS feed. Try to add constant MAIN_SIMPLEXMLLOAD_DEBUG if error messages does not provide enough information.
 ErrorForbidden=Access denied.<br>You try to access to a page, area or feature of a disabled module or without being in an authenticated session or that is not allowed to your user.
 ErrorForbidden2=Permission for this login can be defined by your Dolibarr administrator from menu %s->%s.

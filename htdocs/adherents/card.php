@@ -2041,6 +2041,20 @@ if (is_object($objcanvas) && $objcanvas->displayCanvasExists($action)) {
 				print ($somethingshown?'':'<br>').$linktoelem;
 			}
 			 */
+			
+			// Show online renewal form
+			if (!empty($conf->global->MEMBER_ENABLE_PUBLIC)) {
+				print '<br>';
+				print img_picto('', 'globe').' <span class="opacitymedium">'.$langs->trans("ToOfferALinkForOnlineRenewal").'</span><br>';
+				$url = $object->getRenewalLink($user, $action == 'generate_renewallurl');
+				print '<form action="'.$_SERVER["PHP_SELF"].'?rowid='.$object->id.'&amp;action=generate_renewallurl" method="POST">';
+				print '<input type="hidden" name="token" value="'.newToken().'">';
+				print '<div class="urllink"><input type="text" id="onlinerenewalurl" class="quatrevingtpercentminusx" value="'.$url.'">';
+				print '<input class="button buttongen reposition nomargintop nomarginbottom" id="renewalurl_generatebutton" name="renewalurl_generatebutton" type="submit" value="'.$langs->trans("Generate").'">';
+				print '<a class="" href="'.$url.'" target="_blank" rel="noopener noreferrer">'.img_picto('', 'globe', 'class="paddingleft"').'</a></div>';
+				print '</form>';
+				print ajax_autoselect("onlinerenewalurl", 0);
+			}
 
 			// Show online payment link
 			$useonlinepayment = (!empty($conf->paypal->enabled) || !empty($conf->stripe->enabled) || !empty($conf->paybox->enabled));

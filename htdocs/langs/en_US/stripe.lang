@@ -67,6 +67,7 @@ StripePayoutList=List of Stripe payouts
 ToOfferALinkForTestWebhook=Link to setup Stripe WebHook to call the IPN (test mode)
 ToOfferALinkForLiveWebhook=Link to setup Stripe WebHook to call the IPN (live mode)
 PaymentWillBeRecordedForNextPeriod=Payment will be recorded for the next period.
+PaymentWillBeRecordedForNextPeriodOrUpdateMemberInfo=You can renew your membership for the next period or update your personal informations without membership renewal.
 ClickHereToTryAgain=<a href="%s">Click here to try again...</a>
 CreationOfPaymentModeMustBeDoneFromStripeInterface=Due to Strong Customer Authentication rules, creation of a card must be done from Stripe backoffice. You can click here to switch on Stripe customer record: %s
 TERMINAL_LOCATION=Location (address) for terminals
