@@ -11952,7 +11952,7 @@ function jsonOrUnserialize($stringtodecode)
  * @param	int			$noand		1=Do not add the AND before the condition string.
  * @param	int			$nopar		1=Do not add the perenthesis around the condition string.
  * @param	int			$noerror	1=If search criteria is not valid, does not return an error string but invalidate the SQL
- * @return	string					Return forged SQL string
+ * @return	string					Return forged SQL string, with condition 1 = 3 in case of syntax error
  */
 function forgeSQLFromUniversalSearchCriteria($filter, &$errorstr = '', $noand = 0, $nopar = 0, $noerror = 0)
 {
@@ -11966,7 +11966,7 @@ function forgeSQLFromUniversalSearchCriteria($filter, &$errorstr = '', $noand = 
 		if ($noerror) {
 			return '1 = 2';
 		} else {
-			return 'Filter syntax error - '.$errorstr;		// Bad balance of parenthesis, we return an error message or force a SQL not found
+			return '1 = 3';		// Bad balance of parenthesis, we force a SQL not found
 		}
 	}
 
@@ -11979,7 +11979,7 @@ function forgeSQLFromUniversalSearchCriteria($filter, &$errorstr = '', $noand = 
 		if ($noerror) {
 			return '1 = 2';
 		} else {
-			return 'Filter syntax error - '.$errorstr;		// Bad syntax of the search string, we return an error message or force a SQL not found
+			return '1 = 3';		// Bad syntax of the search string, we force a SQL not found
 		}
 	}
 
