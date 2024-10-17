@@ -531,7 +531,7 @@ if (empty($reshook)) {
 
 			$trackid = 'emailing-test';
 			$upload_dir_tmp = $upload_dir;
-			$mailfile = new CMailFile($tmpsujet, $object->sendto, $object->email_from, $tmpbody, $arr_file, $arr_mime, $arr_name, '', '', 0, $msgishtml, $object->email_errorsto, $arr_css, $trackid, '', 'emailing', '', $upload_dir_tmp);
+			$mailfile = new CMailFile($tmpsujet, $object->sendto, $object->email_from, $tmpbody, $arr_file, $arr_mime, $arr_name, '', '', 0, $msgishtml, $object->email_errorsto, $arr_css, $trackid, '', 'emailing', $object->replyto, $upload_dir_tmp);
 
 			$result = $mailfile->sendfile();
 			if ($result) {
