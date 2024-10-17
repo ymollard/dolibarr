@@ -1031,21 +1031,6 @@ if ($action == 'create') {	// aaa
 
 			print '</td></tr>';
 
-			// Reply to
-			print '<tr><td>';
-			print $form->editfieldkey("MailReply", 'email_replyto', $object->email_replyto, $object, $user->hasRight('mailing', 'creer') && $object->statut < 3, 'string');
-			print '</td><td>';
-			print $form->editfieldval("MailReply", 'email_replyto', $object->email_replyto, $object, $user->hasRight('mailing', 'creer') && $object->statut < 3, 'string');
-			$email = CMailFile::getValidAddress($object->email_replyto, 2);
-			if ($email && !isValidEmail($email)) {
-				$langs->load("errors");
-				print img_warning($langs->trans("ErrorBadEMail", $email));
-			} elseif ($email && !isValidMailDomain($email)) {
-				$langs->load("errors");
-				print img_warning($langs->trans("ErrorBadMXDomain", $email));
-			}
-			print '</td></tr>';
-
 			// Errors to
 			if ($object->messtype != 'sms') {
 				print '<tr><td>';
