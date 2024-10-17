@@ -833,6 +833,8 @@ if ($action == 'create') {	// aaa
 
 	print '<tr class="fieldsforemail"><td>'.$langs->trans("MailErrorsTo").'</td><td><input class="flat minwidth200" name="errorsto" value="'.getDolGlobalString('MAILING_EMAIL_ERRORSTO', getDolGlobalString('MAIN_MAIL_ERRORS_TO')).'"></td></tr>';
 
+	print '<tr class="fieldsforemail"><td>'.$langs->trans("MailReply").'</td><td><input class="flat minwidth200" name="replyto" value="'.getDolGlobalString('MAILING_EMAIL_REPLYTO', getDolGlobalString('MAIN_MAIL_REPLY_TO')).'"></td></tr>';
+
 	// Other attributes
 	$parameters = array();
 	$reshook = $hookmanager->executeHooks('formObjectOptions', $parameters, $object, $action); // Note that $action and $object may have been modified by hook
@@ -1027,6 +1029,21 @@ if ($action == 'create') {	// aaa
 				print img_warning($langs->trans("ErrorBadMXDomain", $email));
 			}
 
+			print '</td></tr>';
+
+			// Reply to
+			print '<tr><td>';
+			print $form->editfieldkey("MailReply", 'email_replyto', $object->email_replyto, $object, $user->hasRight('mailing', 'creer') && $object->statut < 3, 'string');
+			print '</td><td>';
+			print $form->editfieldval("MailReply", 'email_replyto', $object->email_replyto, $object, $user->hasRight('mailing', 'creer') && $object->statut < 3, 'string');
+			$email = CMailFile::getValidAddress($object->email_replyto, 2);
+			if ($email && !isValidEmail($email)) {
+				$langs->load("errors");
+				print img_warning($langs->trans("ErrorBadEMail", $email));
+			} elseif ($email && !isValidMailDomain($email)) {
+				$langs->load("errors");
+				print img_warning($langs->trans("ErrorBadMXDomain", $email));
+			}
 			print '</td></tr>';
 
 			// Errors to
@@ -1375,8 +1392,10 @@ if ($action == 'create') {	// aaa
 			print $langs->trans("MailFrom");
 			print '</td><td>'.dol_print_email($object->email_from, 0, 0, 0, 0, 1).'</td></tr>';
 			// To
+
 			if ($object->messtype != 'sms') {
 				print '<tr><td>'.$langs->trans("MailErrorsTo").'</td><td>'.dol_print_email($object->email_errorsto, 0, 0, 0, 0, 1).'</td></tr>';
+				print '<tr><td>'.$langs->trans("MailReply").'</td><td>'.dol_print_email($object->email_replyto, 0, 0, 0, 0, 1).'</td></tr>';
 			}
 
 			print '</table>';
